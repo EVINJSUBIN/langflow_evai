@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Langflow AI Chat</title>
+    <script>
+        class LangflowClient {
+            constructor(baseURL, applicationToken) {
+                this.baseURL = baseURL;
+                this.applicationToken = applicationToken;
+            }
+            async post(endpoint, body, headers = {"Content-Type": "application/json"}) {
+                headers["Authorization"] = `Bearer ${this.applicationToken}`;
+                headers["Content-Type"] = "application/json";
+                const url = `${this.baseURL}${endpoint}`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(body)
+                    });
+
+                    const responseMessage = await response.json();
+                    if (!response.ok) {
+                        throw new Error(`${response.status} ${response.statusText} - ${JSON.stringify(responseMessage)}`);
+                    }
+                    return responseMessage;
+                } catch (error) {
+                    console.error('Request Error:', error.message);
+                    throw error;
+                }
+            }
+
+            async runFlow(flowIdOrName, langflowId, inputValue) {
+                const endpoint = `/lf/${langflowId}/api/v1/run/${flowIdOrName}`;
+                return this.post(endpoint, { input_value: inputValue });
+            }
+        }
+
+        async function sendMessage() {
+            const applicationToken = 'AstraCS:lebvTkRdlEDamlxvHcyLrTKj:707529011144e4936c62c988b18bae60085f7c993ec332d4af03461ea70184be'; // Replace with your actual token
+            const langflowClient = new LangflowClient('https://api.langflow.astra.datastax.com', applicationToken);
+
+            const userInput = document.getElementById('userInput').value;
+            if (!userInput) return;
+
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<div class="user-message">${userInput}</div>`;
+            document.getElementById('userInput').value = '';
+
+            try {
+                const response = await langflowClient.runFlow('432eb236-11dd-4ecb-8cc3-16910c11d021', '3b429699-b40d-4850-a420-7e134bcd0d49', userInput);
+                const output = response.outputs[0].outputs[0].outputs.message.text;
+                
+                messagesDiv.innerHTML += `<div class="ai-message">${output}</div>`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto scroll to the bottom
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .chatbox {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            background-color: #e1f5fe;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+
+        .ai-message {
+            background-color: #ffe0b2;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat with Langflow AI</h1>
+        <div class="chatbox">
+            <div id="messages" class="messages"></div>
+            <input type="text" id="userInput" placeholder="Type your message here..." />
+            <button id="sendButton" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</body>
+</html>
